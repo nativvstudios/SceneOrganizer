@@ -2,6 +2,9 @@
 ### No code was written by me
 
 
+![Alt text](screenshot.jpg)
+
+
 The `SceneOrganizerWindow` class in Unity Editor is a custom editor window designed to organize scenes within a Unity project. Let's break down its functionality and features:
 
 ### Features:
