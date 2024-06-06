@@ -342,7 +342,7 @@ public class SceneOrganizerWindow : EditorWindow
     {
         groupScrollPosition = GUILayout.BeginScrollView(groupScrollPosition, GUILayout.Height(groupAreaHeight));
 
-        foreach (var group in sceneGroups)
+        foreach (var group in new Dictionary<string, List<string>>(sceneGroups))
         {
             GUILayout.BeginVertical();
             GUILayout.Label(group.Key, EditorStyles.boldLabel);
