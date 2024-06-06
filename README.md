@@ -5,45 +5,130 @@
 ![Alt text](screenshot.jpg)
 
 
-The `SceneOrganizerWindow` class in Unity Editor is a custom editor window designed to organize scenes within a Unity project. Let's break down its functionality and features:
+This code defines a custom Unity Editor window called "Scene Organizer," which allows users to manage and organize scenes in a Unity project. Below is a detailed explanation of the code and its features:
 
-### Features:
+### Explanation by ChatGPT
 
-1. **Window Initialization**:
-   - **Menu Item**: Registered as a window under "Window/Scene Organizer" using `[MenuItem("Window/Scene Organizer")]`.
-   - **ShowWindow**: Static method `ShowWindow()` creates and shows an instance of `SceneOrganizerWindow`.
+1. **Namespace Imports**:
+   - `using UnityEditor;`
+   - `using UnityEngine;`
+   - `using System;`
+   - `using System.Collections.Generic;`
+   - `using System.IO;`
+   - `using System.Runtime.Serialization.Formatters.Binary;`
+   - `using UnityEditor.SceneManagement;`
 
-2. **Data Structures**:
-   - `scenes`: A list of strings containing paths to all scenes (`Assets/*.unity`) found in the project.
-   - `sceneGroups`: A dictionary where keys are group names and values are lists of scene paths belonging to each group.
-   - `newGroupName`: String to store the name of a new group when added.
-   - `savePath`: Path to a file (`Assets/Editor/SceneGroups.dat`) where scene groups are serialized and saved using binary format.
+   These namespaces are required for accessing Unity Editor functionalities, handling UI elements, and working with files and serialization.
 
-3. **Scene Loading and Saving**:
-   - **LoadScenes()**: Loads all scene paths in the project using `AssetDatabase.FindAssets("t:Scene")`.
-   - **LoadGroups()**: Deserializes scene groups from `SceneGroups.dat` using `BinaryFormatter`.
-   - **SaveGroups()**: Serializes `sceneGroups` dictionary into `SceneGroups.dat` using `BinaryFormatter`.
+2. **Class Definition**:
+   - `public class SceneOrganizerWindow : EditorWindow`
+   This defines a new class `SceneOrganizerWindow` that inherits from `EditorWindow`, making it a custom Unity Editor window.
 
-4. **GUI Layout**:
-   - **OnGUI()**: Handles the entire GUI of the window.
-   - **Scenes in Project**: Displays a bold label "Scenes in Project".
-   - **Search Scenes**: Text field to filter scenes based on search query (`searchQuery`).
-   - **Scroll View**: Lists all scenes in a scrollable view (`scrollPosition`) with a customizable height (`scrollAreaHeight`).
-   - **Scene Labels**: Each scene is represented as a horizontal layout with a label (`GUILayout.Label`) showing the scene name.
-   - **Selection and Drag-and-Drop**:
-     - Supports selecting scenes with a single click or double-click to open (`OpenScene()`).
-     - Allows dragging scenes (`DraggingScene`) for organizing into groups.
-   - **Resizing**: Handles resizing of the scroll area (`isResizing`).
-   - **Buttons**: Includes buttons to add the selected scene to a group, add new groups, manage existing groups, and remove groups.
-   - **Group Management**: Displays existing groups, each with options to add scenes, open scenes, remove scenes from groups, and delete the group itself.
+3. **Variables**:
+   - Various variables are defined to manage scenes, groups, UI states, and configurations.
 
-5. **Event Handling**:
-   - Manages various GUI events (`MouseDown`, `MouseUp`, `DragUpdated`, `DragPerform`) to update visuals and data (e.g., adding scenes to groups, resizing GUI elements).
+4. **Menu Item**:
+   - `[MenuItem("Window/Scene Organizer")]`
+   - `public static void ShowWindow()`
+   This creates a menu item in the Unity Editor under "Window" named "Scene Organizer". When clicked, it opens the custom editor window.
 
-### Summary:
-- **Purpose**: To provide a GUI interface for organizing Unity scenes into customizable groups within the Unity Editor.
-- **Functionality**: Allows users to manage scenes, create groups, add scenes to groups via drag-and-drop or selection, open scenes, and delete groups.
-- **Persistence**: Uses serialization (`BinaryFormatter`) to save and load scene groups between Editor sessions.
-- **User Interaction**: Supports basic GUI interactions like clicking, dragging, resizing, and context menus for managing scene groups effectively.
+5. **OnEnable and OnDisable Methods**:
+   - `private void OnEnable()`
+   - `private void OnDisable()`
+   These methods load scenes and groups when the window is enabled and save groups when the window is disabled.
 
-This custom editor window enhances workflow efficiency by enabling better organization and management of scenes within Unity projects.
+6. **Path Management**:
+   - `private void EnsureSavePathExists()`
+   This ensures that the directory for saving group data exists.
+
+7. **Scene and Group Management**:
+   - `private void LoadScenes()`
+   - `private void SaveGroups()`
+   - `private void LoadGroups()`
+   These methods handle loading and saving scenes and groups using serialization.
+
+8. **GUI Rendering**:
+   - `private void OnGUI()`
+   This method defines the layout and interactions within the custom editor window.
+
+### Features
+
+1. **Scene List Display**:
+   - Displays a list of all scenes in the project.
+   - Supports searching through scenes using a search bar.
+
+2. **Scene Selection and Highlighting**:
+   - Allows selecting a scene from the list.
+   - Highlights the selected scene.
+
+3. **Double-Click to Open Scene**:
+   - Double-clicking a scene in the list opens it in the editor.
+
+4. **Drag-and-Drop Scenes to Groups**:
+   - Supports dragging scenes from the list and dropping them into groups.
+
+5. **Resizeable UI Areas**:
+   - The scene list and group list areas are resizeable using a handle.
+
+6. **Group Management**:
+   - Allows creating new groups.
+   - Displays existing groups and the scenes within them.
+   - Supports adding selected scenes to groups.
+   - Allows removing scenes from groups.
+   - Allows removing entire groups.
+
+7. **Scene Renaming**:
+   - Provides functionality to rename scenes within the project.
+
+### GUI Methods
+
+1. **DrawSearchBar**:
+   - Renders a search bar to filter the scene list.
+
+2. **DrawScenesList**:
+   - Renders the list of scenes with search functionality and renaming options.
+
+3. **DrawSceneItem**:
+   - Helper method to render each scene item with appropriate UI elements.
+
+4. **DrawRenameSceneField**:
+   - Renders the text field and buttons for renaming a scene.
+
+5. **DrawSceneLabel**:
+   - Renders the scene label and handles selection and highlighting.
+
+6. **DrawResizeHandle**:
+   - Renders a handle for resizing the scene and group areas.
+
+7. **DrawAddSceneToGroupButton**:
+   - Renders a button to add the selected scene to a group.
+
+8. **DrawNewGroupSection**:
+   - Renders the UI elements for creating a new group.
+
+9. **DrawGroupSection**:
+   - Renders the list of groups and the scenes within each group.
+
+### Scene Operations
+
+1. **RenameScene**:
+   - Handles renaming a scene asset within the project.
+
+2. **AddNewGroup**:
+   - Adds a new group to the group dictionary.
+
+3. **AddSceneToGroup**:
+   - Adds a scene to a specified group.
+
+4. **OpenScene**:
+   - Opens the specified scene in the editor.
+
+### Event Handling
+
+1. **HandleDragAndDrop**:
+   - Manages the drag-and-drop functionality for scenes and groups.
+
+2. **HandleSceneSelection**:
+   - Handles the logic for selecting and highlighting scenes, as well as double-click to open scenes.
+
+This code provides a comprehensive tool for organizing scenes in a Unity project, with features for grouping, renaming, and managing scenes in an intuitive editor window interface.
