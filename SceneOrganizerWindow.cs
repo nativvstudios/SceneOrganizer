@@ -16,7 +16,6 @@ public class SceneOrganizerWindow : EditorWindow
     private Vector2 sceneScrollPosition;
     private Vector2 groupScrollPosition;
     private float sceneAreaHeight = 200;
-    private float groupAreaHeight = 200;
     private bool isResizing = false;
     private string draggingScene;
     private string targetGroup;
@@ -26,6 +25,7 @@ public class SceneOrganizerWindow : EditorWindow
     private string newSceneName = "";
     private double lastClickTime;
     private const double doubleClickThreshold = 0.3;
+    private bool isGroupScrollViewActive = false;
 
     [MenuItem("Window/Scene Organizer")]
     public static void ShowWindow()
@@ -104,6 +104,9 @@ public class SceneOrganizerWindow : EditorWindow
 
     private void OnGUI()
     {
+        float totalHeight = position.height - 50; // Adjust based on other elements in your window
+        sceneAreaHeight = Mathf.Clamp(totalHeight * 0.5f, 100, totalHeight - 100); // Allocate half the height to scenes, but keep minimum and maximum limits
+
         mainScrollPosition = GUILayout.BeginScrollView(mainScrollPosition);
 
         GUILayout.Label("Scenes in Project", EditorStyles.boldLabel);
@@ -124,6 +127,12 @@ public class SceneOrganizerWindow : EditorWindow
         DrawGroupSection();
 
         GUILayout.EndScrollView();
+
+        // Draw watermark only if the group scroll view is not active
+        if (!isGroupScrollViewActive)
+        {
+            DrawWatermark();
+        }
     }
 
     private void DrawSearchBar()
@@ -286,8 +295,7 @@ public class SceneOrganizerWindow : EditorWindow
         if (isResizing)
         {
             float newHeight = sceneAreaHeight + Event.current.delta.y;
-            sceneAreaHeight = Mathf.Clamp(newHeight, 100, position.height - 100);
-            groupAreaHeight = position.height - sceneAreaHeight - 100;
+            sceneAreaHeight = Mathf.Clamp(newHeight, 100, position.height - 150);
             Repaint();
         }
 
@@ -340,7 +348,11 @@ public class SceneOrganizerWindow : EditorWindow
 
     private void DrawGroupSection()
     {
-        groupScrollPosition = GUILayout.BeginScrollView(groupScrollPosition, GUILayout.Height(groupAreaHeight));
+        float remainingHeight = position.height - sceneAreaHeight - 110; // Adjust 110 based on other elements in your window and leave room for watermark
+        remainingHeight = Mathf.Max(remainingHeight, 100); // Ensure a minimum height
+
+        groupScrollPosition = GUILayout.BeginScrollView(groupScrollPosition, GUILayout.Height(remainingHeight));
+        isGroupScrollViewActive = groupScrollPosition.y > 0; // Check if the group scroll view is active
 
         foreach (var group in new Dictionary<string, List<string>>(sceneGroups))
         {
@@ -426,5 +438,18 @@ public class SceneOrganizerWindow : EditorWindow
         {
             EditorSceneManager.OpenScene(scenePath);
         }
+    }
+
+    private void DrawWatermark()
+    {
+        GUIStyle watermarkStyle = new GUIStyle(GUI.skin.label)
+        {
+            alignment = TextAnchor.LowerRight,
+            fontSize = 10,
+            normal = { textColor = new Color(0.5f, 0.5f, 0.5f, 0.8f) } // Adjust color to be darker than the dark editor color
+        };
+
+        Rect watermarkRect = new Rect(position.width - 150, position.height - 20, 140, 20);
+        GUI.Label(watermarkRect, "Made by Nativvstudios", watermarkStyle);
     }
 }
