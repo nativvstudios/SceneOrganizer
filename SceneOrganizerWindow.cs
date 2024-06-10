@@ -1,17 +1,16 @@
+using System.Security.AccessControl;
 using UnityEditor;
 using UnityEngine;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
+using System.Collections.Generic;
 using UnityEditor.SceneManagement;
 
 public class SceneOrganizerWindow : EditorWindow
 {
     private List<string> scenes = new List<string>();
-    private Dictionary<string, List<string>> sceneGroups = new Dictionary<string, List<string>>();
+    private SceneGroupData sceneGroupData;
     private string newGroupName = "";
-    private string savePath = "Assets/Editor/SceneGroups.dat";
     private Vector2 mainScrollPosition;
     private Vector2 sceneScrollPosition;
     private Vector2 groupScrollPosition;
@@ -37,21 +36,11 @@ public class SceneOrganizerWindow : EditorWindow
     {
         LoadScenes();
         LoadGroups();
-        EnsureSavePathExists();
     }
 
     private void OnDisable()
     {
         SaveGroups();
-    }
-
-    private void EnsureSavePathExists()
-    {
-        string directoryPath = Path.GetDirectoryName(savePath);
-        if (!Directory.Exists(directoryPath))
-        {
-            Directory.CreateDirectory(directoryPath);
-        }
     }
 
     private void LoadScenes()
@@ -68,37 +57,18 @@ public class SceneOrganizerWindow : EditorWindow
 
     private void SaveGroups()
     {
-        EnsureSavePathExists();
-        try
-        {
-            using (FileStream file = File.Open(savePath, FileMode.Create))
-            {
-                BinaryFormatter bf = new BinaryFormatter();
-                bf.Serialize(file, sceneGroups);
-            }
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"Failed to save scene groups: {e.Message}");
-        }
+        EditorUtility.SetDirty(sceneGroupData);
+        AssetDatabase.SaveAssets();
     }
 
     private void LoadGroups()
     {
-        if (File.Exists(savePath))
+        sceneGroupData = AssetDatabase.LoadAssetAtPath<SceneGroupData>("Assets/Editor/SceneGroupData.asset");
+        if (sceneGroupData == null)
         {
-            try
-            {
-                using (FileStream file = File.Open(savePath, FileMode.Open))
-                {
-                    BinaryFormatter bf = new BinaryFormatter();
-                    sceneGroups = (Dictionary<string, List<string>>)bf.Deserialize(file);
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Failed to load scene groups: {e.Message}");
-            }
+            sceneGroupData = CreateInstance<SceneGroupData>();
+            AssetDatabase.CreateAsset(sceneGroupData, "Assets/Editor/SceneGroupData.asset");
+            AssetDatabase.SaveAssets();
         }
     }
 
@@ -311,17 +281,17 @@ public class SceneOrganizerWindow : EditorWindow
         {
             if (GUILayout.Button("Add Selected Scene to Group", EditorStyles.miniButton))
             {
-                if (sceneGroups.Count == 0)
+                if (sceneGroupData.sceneGroups.Count == 0)
                 {
                     EditorUtility.DisplayDialog("No Groups", "You must have at least one group to add the scene to.", "OK");
                     return;
                 }
 
                 GenericMenu menu = new GenericMenu();
-                foreach (var group in sceneGroups.Keys)
+                foreach (var group in sceneGroupData.sceneGroups)
                 {
-                    string groupName = group;
-                    menu.AddItem(new GUIContent(group), false, () => AddSceneToGroup(selectedScene, groupName));
+                    string groupName = group.groupName;
+                    menu.AddItem(new GUIContent(groupName), false, () => AddSceneToGroup(selectedScene, groupName));
                 }
                 menu.ShowAsContext();
             }
@@ -354,18 +324,18 @@ public class SceneOrganizerWindow : EditorWindow
         groupScrollPosition = GUILayout.BeginScrollView(groupScrollPosition, GUILayout.Height(remainingHeight));
         isGroupScrollViewActive = groupScrollPosition.y > 0; // Check if the group scroll view is active
 
-        foreach (var group in new Dictionary<string, List<string>>(sceneGroups))
+        foreach (var group in sceneGroupData.sceneGroups)
         {
             GUILayout.BeginVertical();
-            GUILayout.Label(group.Key, EditorStyles.boldLabel);
+            GUILayout.Label(group.groupName, EditorStyles.boldLabel);
             Rect groupRect = GUILayoutUtility.GetLastRect();
             if (draggingScene != null && groupRect.Contains(Event.current.mousePosition))
             {
-                targetGroup = group.Key;
+                targetGroup = group.groupName;
                 Repaint();
             }
 
-            foreach (var scene in group.Value)
+            foreach (var scene in group.scenes)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("  - " + Path.GetFileNameWithoutExtension(scene), EditorStyles.label);
@@ -377,7 +347,7 @@ public class SceneOrganizerWindow : EditorWindow
 
                 if (GUILayout.Button("Remove", EditorStyles.miniButton, GUILayout.Width(70)))
                 {
-                    group.Value.Remove(scene);
+                    group.scenes.Remove(scene);
                     break;
                 }
 
@@ -388,9 +358,9 @@ public class SceneOrganizerWindow : EditorWindow
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Remove Group", EditorStyles.miniButton))
             {
-                if (EditorUtility.DisplayDialog("Confirm Delete", $"Are you sure you want to delete the group '{group.Key}'?", "Yes", "No"))
+                if (EditorUtility.DisplayDialog("Confirm Delete", $"Are you sure you want to delete the group '{group.groupName}'?", "Yes", "No"))
                 {
-                    sceneGroups.Remove(group.Key);
+                    sceneGroupData.sceneGroups.Remove(group);
                     break;
                 }
             }
@@ -417,18 +387,22 @@ public class SceneOrganizerWindow : EditorWindow
             return;
         }
 
-        if (!sceneGroups.ContainsKey(newGroupName))
+        if (!sceneGroupData.sceneGroups.Exists(group => group.groupName == newGroupName))
         {
-            sceneGroups.Add(newGroupName, new List<string>());
+            SceneGroupData.SceneGroup newGroup = new SceneGroupData.SceneGroup { groupName = newGroupName };
+            sceneGroupData.sceneGroups.Add(newGroup);
             newGroupName = "";
+            EditorUtility.SetDirty(sceneGroupData);
         }
     }
 
-    private void AddSceneToGroup(string scene, string group)
+    private void AddSceneToGroup(string scene, string groupName)
     {
-        if (sceneGroups.ContainsKey(group) && !sceneGroups[group].Contains(scene))
+        var group = sceneGroupData.sceneGroups.Find(g => g.groupName == groupName);
+        if (group != null && !group.scenes.Contains(scene))
         {
-            sceneGroups[group].Add(scene);
+            group.scenes.Add(scene);
+            EditorUtility.SetDirty(sceneGroupData);
         }
     }
 
