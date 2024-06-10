@@ -178,7 +178,7 @@ public class SceneOrganizerWindow : EditorWindow
         else
         {
             DrawSceneLabel(scene, sceneStyle);
-            if (GUILayout.Button("Rename", GUILayout.Width(60)))
+            if (scene == selectedScene && GUILayout.Button("Rename", GUILayout.Width(60)))
             {
                 StartRenamingScene(scene);
             }
