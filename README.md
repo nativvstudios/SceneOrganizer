@@ -1,3 +1,5 @@
+https://github.com/nativvstudios/SceneOrganizer/assets/26895364/35295e8e-cc9a-49d3-92f4-2101a9746dda
+
 # SceneOrganizer
 
 SceneOrganizer is a Unity Editor tool designed to simplify the management of scenes within your Unity project. This tool allows you to create, organize, and manage scenes and scene groups effortlessly. It provides a user-friendly interface for handling scene assets, making it easier to navigate and work with complex projects.
