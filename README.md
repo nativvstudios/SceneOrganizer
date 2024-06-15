@@ -1,133 +1,128 @@
-## Made entirely with ChatGPT
-### No code was written by me
+# SceneOrganizer
 
-https://github.com/nativvstudios/SceneOrganizer/assets/26895364/35295e8e-cc9a-49d3-92f4-2101a9746dda
+SceneOrganizer is a Unity Editor tool designed to simplify the management of scenes within your Unity project. This tool allows you to create, organize, and manage scenes and scene groups effortlessly. It provides a user-friendly interface for handling scene assets, making it easier to navigate and work with complex projects.
 
+## Features
 
-This code defines a custom Unity Editor window called "Scene Organizer," which allows users to manage and organize scenes in a Unity project. Below is a detailed explanation of the code and its features:
+### Scene Management
+- **Scene List:** Display all scenes within your project, sorted alphabetically.
+- **Search Bar:** Quickly find scenes by typing keywords in the search bar.
+- **Scene Operations:**
+  - **Open Scene:** Open a selected scene in the editor.
+  - **Rename Scene:** Rename any scene directly within the SceneOrganizer window.
+  - **Create New Scene:** Create new scenes using predefined templates.
 
-### Explanation by ChatGPT
+### Group Management
+- **Scene Groups:** Organize your scenes into groups for better project management.
+- **Add New Group:** Create new groups to categorize your scenes.
+- **Add Scene to Group:** Drag and drop scenes into groups or use the context menu to add selected scenes to a group.
+- **Move Scenes Between Groups:** Move scenes between different groups easily.
+- **Remove Scene from Group:** Remove scenes from groups without deleting the scene.
+- **Remove Group:** Delete a group and optionally remove all its scenes from the project.
 
-1. **Namespace Imports**:
-   - `using UnityEditor;`
-   - `using UnityEngine;`
-   - `using System;`
-   - `using System.Collections.Generic;`
-   - `using System.IO;`
-   - `using System.Runtime.Serialization.Formatters.Binary;`
-   - `using UnityEditor.SceneManagement;`
+### Drag and Drop Functionality
+- **Drag Scenes:** Drag scenes from the scene list and drop them into groups.
+- **Visual Feedback:** Highlight groups when a scene is dragged over them.
 
-   These namespaces are required for accessing Unity Editor functionalities, handling UI elements, and working with files and serialization.
+### Customization
+- **Resizable Panels:** Adjust the height of the scene list panel to suit your preferences.
+- **Group Collapsing:** Collapse and expand groups to focus on specific parts of your project.
 
-2. **Class Definition**:
-   - `public class SceneOrganizerWindow : EditorWindow`
-   This defines a new class `SceneOrganizerWindow` that inherits from `EditorWindow`, making it a custom Unity Editor window.
+### Utility
+- **Watermark:** Displays a customizable watermark in the editor window.
 
-3. **Variables**:
-   - Various variables are defined to manage scenes, groups, UI states, and configurations.
+## Installation
 
-4. **Menu Item**:
-   - `[MenuItem("Window/Scene Organizer")]`
-   - `public static void ShowWindow()`
-   This creates a menu item in the Unity Editor under "Window" named "Scene Organizer". When clicked, it opens the custom editor window.
+1. Clone or download the repository.
+2. Place the `SceneOrganizer` folder in your project's `Assets/Editor` directory.
 
-5. **OnEnable and OnDisable Methods**:
-   - `private void OnEnable()`
-   - `private void OnDisable()`
-   These methods load scenes and groups when the window is enabled and save groups when the window is disabled.
+## Usage
 
-6. **Path Management**:
-   - `private void EnsureSavePathExists()`
-   This ensures that the directory for saving group data exists.
+1. Open the SceneOrganizer window from the Unity menu: `Window > Scene Organizer`.
+2. Use the interface to manage your scenes and scene groups.
 
-7. **Scene and Group Management**:
-   - `private void LoadScenes()`
-   - `private void SaveGroups()`
-   - `private void LoadGroups()`
-   These methods handle loading and saving scenes and groups using serialization.
+## Documentation
 
-8. **GUI Rendering**:
-   - `private void OnGUI()`
-   This method defines the layout and interactions within the custom editor window.
+### SceneOrganizerWindow
 
-### Features
+#### Properties
+- `List<string> scenes`: List of scenes in the project.
+- `SceneGroupData sceneGroupData`: Data structure for storing scene groups.
+- `string newGroupName`: Name for creating new groups.
+- `Vector2 mainScrollPosition`, `sceneScrollPosition`, `groupScrollPosition`, `initialSceneScrollPosition`: Scroll positions for various scrollable areas.
+- `float sceneAreaHeight`: Height of the scene list area.
+- `bool isResizing`: Indicates if the user is resizing the scene list area.
+- `string draggingScene`: Scene currently being dragged.
+- `string targetGroup`: Target group for the dragged scene.
+- `string searchQuery`: Search query for filtering scenes.
+- `string selectedScene`: Currently selected scene.
+- `string renameScene`: Scene currently being renamed.
+- `string newSceneName`: New name for the scene being renamed.
+- `float lastClickTime`: Timestamp of the last click event.
+- `bool isGroupScrollViewActive`: Indicates if the group scroll view is active.
+- `Dictionary<string, bool> groupCollapsedStates`: States for collapsing and expanding groups.
 
-1. **Scene List Display**:
-   - Displays a list of all scenes in the project.
-   - Supports searching through scenes using a search bar.
+#### Methods
+- `ShowWindow()`: Opens the SceneOrganizer window.
+- `OnEnable()`: Loads scenes and groups when the window is enabled.
+- `OnDisable()`: Saves groups when the window is disabled.
+- `LoadScenes()`: Loads all scenes in the project.
+- `SaveGroups()`: Saves the current state of scene groups.
+- `LoadGroups()`: Loads scene groups from the asset.
+- `OnGUI()`: Renders the GUI for the SceneOrganizer window.
+- `DrawSearchBar()`: Draws the search bar for filtering scenes.
+- `DrawScenesList()`: Draws the list of scenes.
+- `DrawSceneItem(string scene)`: Draws an individual scene item.
+- `DrawRenameSceneField(string scene)`: Draws the rename field for a scene.
+- `DrawSceneLabel(string scene, GUIStyle sceneStyle)`: Draws the label for a scene.
+- `HandleSceneSelection(string scene, Rect labelRect)`: Handles the selection of scenes.
+- `StartRenamingScene(string scene)`: Initiates the renaming of a scene.
+- `HandleDragAndDrop()`: Manages drag and drop operations.
+- `DrawResizeHandle()`: Draws the handle for resizing the scene list area.
+- `DrawAddSceneToGroupButton()`: Draws the button for adding a scene to a group.
+- `DrawNewGroupSection()`: Draws the section for creating new groups.
+- `DrawGroupSection()`: Draws the section for managing groups.
+- `RenameScene(string oldScenePath, string newSceneName)`: Renames a scene.
+- `AddNewGroup()`: Adds a new group.
+- `AddSceneToGroup(string scene, string groupName)`: Adds a scene to a group.
+- `MoveSceneToGroup(string scene, string targetGroupName)`: Moves a scene to a different group.
+- `OpenScene(string scenePath)`: Opens a scene in the editor.
+- `DrawWatermark()`: Draws the watermark in the editor window.
 
-2. **Scene Selection and Highlighting**:
-   - Allows selecting a scene from the list.
-   - Highlights the selected scene.
+### SceneGroupData
 
-3. **Double-Click to Open Scene**:
-   - Double-clicking a scene in the list opens it in the editor.
+#### Properties
+- `List<SceneGroup> sceneGroups`: List of scene groups.
 
-4. **Drag-and-Drop Scenes to Groups**:
-   - Supports dragging scenes from the list and dropping them into groups.
+#### Nested Classes
+- `SceneGroup`: Represents a group of scenes.
+  - `string groupName`: Name of the group.
+  - `List<string> scenes`: List of scenes in the group.
 
-5. **Resizeable UI Areas**:
-   - The scene list and group list areas are resizeable using a handle.
+### CreateNewSceneWindow
 
-6. **Group Management**:
-   - Allows creating new groups.
-   - Displays existing groups and the scenes within them.
-   - Supports adding selected scenes to groups.
-   - Allows removing scenes from groups.
-   - Allows removing entire groups.
+#### Properties
+- `string sceneName`: Name of the new scene.
+- `string[] sceneTemplates`: Array of scene templates.
+- `int selectedTemplateIndex`: Index of the selected scene template.
+- `string savePath`: Path where the new scene will be saved.
+- `SceneOrganizerWindow organizerWindow`: Reference to the SceneOrganizer window.
 
-7. **Scene Renaming**:
-   - Provides functionality to rename scenes within the project.
+#### Methods
+- `ShowWindow(SceneOrganizerWindow organizerWindow)`: Opens the CreateNewSceneWindow.
+- `OnGUI()`: Renders the GUI for the CreateNewSceneWindow.
+- `CreateScene()`: Creates a new scene based on the specified template.
 
-### GUI Methods
+## Contributing
 
-1. **DrawSearchBar**:
-   - Renders a search bar to filter the scene list.
+Feel free to submit issues or pull requests. Contributions are welcome!
 
-2. **DrawScenesList**:
-   - Renders the list of scenes with search functionality and renaming options.
+## License
 
-3. **DrawSceneItem**:
-   - Helper method to render each scene item with appropriate UI elements.
+This project is licensed under the MIT License.
 
-4. **DrawRenameSceneField**:
-   - Renders the text field and buttons for renaming a scene.
+## Credits
 
-5. **DrawSceneLabel**:
-   - Renders the scene label and handles selection and highlighting.
+Made by [Nativvstudios](https://nativvstudios.com).
 
-6. **DrawResizeHandle**:
-   - Renders a handle for resizing the scene and group areas.
-
-7. **DrawAddSceneToGroupButton**:
-   - Renders a button to add the selected scene to a group.
-
-8. **DrawNewGroupSection**:
-   - Renders the UI elements for creating a new group.
-
-9. **DrawGroupSection**:
-   - Renders the list of groups and the scenes within each group.
-
-### Scene Operations
-
-1. **RenameScene**:
-   - Handles renaming a scene asset within the project.
-
-2. **AddNewGroup**:
-   - Adds a new group to the group dictionary.
-
-3. **AddSceneToGroup**:
-   - Adds a scene to a specified group.
-
-4. **OpenScene**:
-   - Opens the specified scene in the editor.
-
-### Event Handling
-
-1. **HandleDragAndDrop**:
-   - Manages the drag-and-drop functionality for scenes and groups.
-
-2. **HandleSceneSelection**:
-   - Handles the logic for selecting and highlighting scenes, as well as double-click to open scenes.
-
-This code provides a comprehensive tool for organizing scenes in a Unity project, with features for grouping, renaming, and managing scenes in an intuitive editor window interface.
+---
