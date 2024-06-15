@@ -1,8 +1,7 @@
 ## Made entirely with ChatGPT
 ### No code was written by me
 
-
-![Alt text](screenshot.jpg)
+https://github.com/nativvstudios/SceneOrganizer/assets/26895364/35295e8e-cc9a-49d3-92f4-2101a9746dda
 
 
 This code defines a custom Unity Editor window called "Scene Organizer," which allows users to manage and organize scenes in a Unity project. Below is a detailed explanation of the code and its features:
