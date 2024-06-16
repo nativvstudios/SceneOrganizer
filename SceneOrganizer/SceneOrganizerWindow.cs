@@ -14,7 +14,6 @@ public class SceneOrganizerWindow : EditorWindow
     private Vector2 sceneScrollPosition;
     private Vector2 groupScrollPosition;
     private Vector2 initialSceneScrollPosition;
-    private float sceneAreaHeight = 200;
     private bool isResizing = false;
     private string draggingScene;
     private string targetGroup;
@@ -22,6 +21,8 @@ public class SceneOrganizerWindow : EditorWindow
     private string selectedScene;
     private string renameScene = null;
     private string newSceneName = "";
+    private string renameGroup = null;
+    private string newGroupNameTemp = "";
     private float lastClickTime;
     private const float doubleClickThreshold = 0.3f;
     private bool isGroupScrollViewActive = false;
@@ -30,8 +31,13 @@ public class SceneOrganizerWindow : EditorWindow
     private Vector2 initialMousePosition;
     private const float dragThreshold = 10.0f; // Threshold to start a drag
 
-    private const string assetPath = "Assets/Editor/SceneGroupData.asset";
+    public const string assetPath = "Assets/Editor/SceneGroupData.asset";
     private const int maxGroupNameLength = 50;
+
+    private bool enableBackup;
+    private string backupDirectory;
+
+    private float sceneAreaHeight = 200; // Reintroducing sceneAreaHeight
 
     [MenuItem("Window/Scene Organizer")]
     public static void ShowWindow()
@@ -43,6 +49,10 @@ public class SceneOrganizerWindow : EditorWindow
     {
         LoadScenes();
         LoadGroups();
+
+        // Load settings
+        enableBackup = EditorPrefs.GetBool("SceneOrganizer_EnableBackup", false);
+        backupDirectory = EditorPrefs.GetString("SceneOrganizer_BackupDirectory", Application.dataPath);
     }
 
     private void OnDisable()
@@ -65,27 +75,99 @@ public class SceneOrganizerWindow : EditorWindow
 
     private void SaveGroups()
     {
+        if (sceneGroupData == null) return; // Avoid null reference
+
         EditorUtility.SetDirty(sceneGroupData);
         AssetDatabase.SaveAssets();
+
+        if (enableBackup)
+        {
+            BackupGroups();
+        }
     }
 
-    private void LoadGroups()
+    private void BackupGroups()
+    {
+        try
+        {
+            if (!Directory.Exists(backupDirectory))
+            {
+                Directory.CreateDirectory(backupDirectory);
+            }
+
+            string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+            string backupFileName = $"SceneGroupData_Backup_{timestamp}.asset";
+            string backupPath = Path.Combine(backupDirectory, backupFileName);
+            string sourcePath = Application.dataPath + "/../" + assetPath;
+
+            File.Copy(sourcePath, backupPath, true);
+            Debug.Log($"SceneGroupData backed up to {backupPath}");
+
+            // Manage backup copies
+            ManageBackupCopies();
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to backup SceneGroupData: {ex.Message}");
+        }
+    }
+
+    private void ManageBackupCopies()
+    {
+        string[] backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
+
+        if (backupFiles.Length > 3)
+        {
+            Array.Sort(backupFiles);
+            for (int i = 0; i < backupFiles.Length - 3; i++)
+            {
+                File.Delete(backupFiles[i]);
+            }
+        }
+    }
+
+    public void LoadGroups()
     {
         sceneGroupData = AssetDatabase.LoadAssetAtPath<SceneGroupData>(assetPath);
 
-        if (sceneGroupData == null)
+        if (sceneGroupData == null || sceneGroupData.sceneGroups.Count == 0)
         {
-            sceneGroupData = CreateInstance<SceneGroupData>();
-            AssetDatabase.CreateAsset(sceneGroupData, assetPath);
-            AssetDatabase.SaveAssets();
+            // Try to restore from the latest backup
+            string[] backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
+            if (backupFiles.Length > 0)
+            {
+                Array.Sort(backupFiles);
+                string latestBackup = backupFiles[backupFiles.Length - 1];
+
+                try
+                {
+                    File.Copy(latestBackup, Application.dataPath + "/../" + assetPath, true);
+                    AssetDatabase.Refresh();
+                    sceneGroupData = AssetDatabase.LoadAssetAtPath<SceneGroupData>(assetPath);
+                    Debug.Log("Restored SceneGroupData from latest backup.");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"Failed to restore SceneGroupData from backup: {ex.Message}");
+                    CreateNewSceneGroupData();
+                }
+            }
+            else
+            {
+                CreateNewSceneGroupData();
+            }
         }
+    }
+
+    private void CreateNewSceneGroupData()
+    {
+        sceneGroupData = CreateInstance<SceneGroupData>();
+        AssetDatabase.CreateAsset(sceneGroupData, assetPath);
+        AssetDatabase.SaveAssets();
     }
 
     private void OnGUI()
     {
-        float totalHeight = position.height - 50; // Adjust based on other elements in your window
-        sceneAreaHeight = Mathf.Clamp(totalHeight * 0.5f, 100, totalHeight - 100); // Allocate half the height to scenes, but keep minimum and maximum limits
-
         mainScrollPosition = GUILayout.BeginScrollView(mainScrollPosition);
 
         GUILayout.Label("Scenes in Project", EditorStyles.boldLabel);
@@ -123,7 +205,19 @@ public class SceneOrganizerWindow : EditorWindow
     private void DrawSearchBar()
     {
         GUILayout.BeginHorizontal();
-        searchQuery = EditorGUILayout.TextField(searchQuery, EditorStyles.toolbarSearchField);
+        searchQuery = EditorGUILayout.TextField(searchQuery, EditorStyles.toolbarSearchField, GUILayout.ExpandWidth(true));
+
+        // Adjust button size to fit inline with the search bar
+        GUIStyle cogButtonStyle = new GUIStyle(GUI.skin.button)
+        {
+            fixedHeight = EditorGUIUtility.singleLineHeight
+        };
+
+        if (GUILayout.Button(EditorGUIUtility.IconContent("SettingsIcon"), cogButtonStyle, GUILayout.Width(20)))
+        {
+            SettingsWindow.ShowWindow(this);
+        }
+
         GUILayout.EndHorizontal();
     }
 
@@ -290,15 +384,13 @@ public class SceneOrganizerWindow : EditorWindow
                     }
                     else
                     {
-                        AddSceneToGroup(draggingScene, targetGroup);
+                        AddSceneToGroupInternal(draggingScene, targetGroup);
                     }
                 }
                 draggingScene = null;
                 targetGroup = null;
             }
             currentEvent.Use();
-
-            Repaint();
         }
 
         if (currentEvent.type == EventType.MouseUp)
@@ -347,7 +439,7 @@ public class SceneOrganizerWindow : EditorWindow
                 foreach (var group in sceneGroupData.sceneGroups)
                 {
                     string groupName = group.groupName;
-                    menu.AddItem(new GUIContent(groupName), false, () => AddSceneToGroup(selectedScene, groupName));
+                    menu.AddItem(new GUIContent(groupName), false, () => AddSceneToGroupInternal(selectedScene, groupName));
                 }
                 menu.ShowAsContext();
             }
@@ -361,19 +453,23 @@ public class SceneOrganizerWindow : EditorWindow
 
         if (Event.current.isKey && Event.current.keyCode == KeyCode.Return && !string.IsNullOrEmpty(newGroupName))
         {
-            AddNewGroup();
+            AddNewGroupInternal(newGroupName);
+            newGroupName = "";
             Event.current.Use();
         }
         EditorGUILayout.EndHorizontal();
 
         if (GUILayout.Button("Add Group", EditorStyles.miniButton))
         {
-            AddNewGroup();
+            AddNewGroupInternal(newGroupName);
+            newGroupName = "";
         }
     }
 
     private void DrawGroupSection()
     {
+        if (sceneGroupData == null) return; // Avoid null reference
+
         float remainingHeight = position.height - sceneAreaHeight - 110; // Adjust 110 based on other elements in your window and leave room for watermark
         remainingHeight = Mathf.Max(remainingHeight, 100); // Ensure a minimum height
 
@@ -394,7 +490,30 @@ public class SceneOrganizerWindow : EditorWindow
             {
                 groupCollapsedStates[group.groupName] = !groupCollapsedStates[group.groupName];
             }
-            GUILayout.Label(group.groupName, EditorStyles.boldLabel);
+
+            if (group.groupName == renameGroup)
+            {
+                newGroupNameTemp = EditorGUILayout.TextField(newGroupNameTemp);
+                if (GUILayout.Button("Rename", GUILayout.Width(60)))
+                {
+                    RenameGroupInternal(group.groupName, newGroupNameTemp);
+                    renameGroup = null;
+                }
+                if (GUILayout.Button("Cancel", GUILayout.Width(60)))
+                {
+                    renameGroup = null;
+                }
+            }
+            else
+            {
+                GUILayout.Label(group.groupName, EditorStyles.boldLabel);
+                if (GUILayout.Button("Rename", GUILayout.Width(60)))
+                {
+                    renameGroup = group.groupName;
+                    newGroupNameTemp = group.groupName;
+                }
+            }
+
             GUILayout.EndHorizontal();
 
             if (!groupCollapsedStates[group.groupName])
@@ -403,47 +522,21 @@ public class SceneOrganizerWindow : EditorWindow
                 if (draggingScene != null && groupRect.Contains(Event.current.mousePosition))
                 {
                     targetGroup = group.groupName;
-                    GUI.Box(groupRect, GUIContent.none, new GUIStyle { normal = { background = EditorGUIUtility.whiteTexture }, border = new RectOffset(2, 2, 2, 2) });
-                    Repaint();
+                    EditorGUI.DrawRect(groupRect, new Color(0.24f, 0.49f, 0.91f, 0.25f)); // Highlight color with transparency
                 }
 
                 GUILayout.BeginVertical();
-                for (int i = group.scenes.Count - 1; i >= 0; i--)
+                List<string> scenesToRemove = new List<string>();
+                foreach (var scene in group.scenes)
                 {
-                    var scene = group.scenes[i];
-                    GUILayout.BeginHorizontal();
-                    GUILayout.Label("  - " + Path.GetFileNameWithoutExtension(scene), EditorStyles.label);
-
-                    if (GUILayout.Button("Open", EditorStyles.miniButton, GUILayout.Width(60)))
-                    {
-                        OpenScene(scene);
-                    }
-
-                    if (GUILayout.Button("Remove", EditorStyles.miniButton, GUILayout.Width(70)))
-                    {
-                        group.scenes.RemoveAt(i);
-                        i--;
-                        Repaint();
-                        break;
-                    }
-
-                    if (GUILayout.Button("Move", EditorStyles.miniButton, GUILayout.Width(70)))
-                    {
-                        GenericMenu menu = new GenericMenu();
-                        foreach (var targetGroup in sceneGroupData.sceneGroups)
-                        {
-                            if (targetGroup.groupName != group.groupName)
-                            {
-                                string targetGroupName = targetGroup.groupName;
-                                menu.AddItem(new GUIContent(targetGroupName), false, () => MoveSceneToGroup(scene, targetGroupName));
-                            }
-                        }
-                        menu.ShowAsContext();
-                    }
-
-                    GUILayout.EndHorizontal();
+                    DrawGroupSceneItem(group, scene, scenesToRemove);
                 }
                 GUILayout.EndVertical();
+
+                foreach (var scene in scenesToRemove)
+                {
+                    group.scenes.Remove(scene);
+                }
             }
 
             GUILayout.BeginHorizontal();
@@ -452,8 +545,7 @@ public class SceneOrganizerWindow : EditorWindow
             {
                 if (EditorUtility.DisplayDialog("Confirm Delete", $"Are you sure you want to delete the group '{group.groupName}'?", "Yes", "No"))
                 {
-                    sceneGroupData.sceneGroups.Remove(group);
-                    Repaint();
+                    RemoveGroupInternal(group);
                     break;
                 }
             }
@@ -465,6 +557,38 @@ public class SceneOrganizerWindow : EditorWindow
         GUILayout.EndScrollView();
     }
 
+    private void DrawGroupSceneItem(SceneGroupData.SceneGroup group, string scene, List<string> scenesToRemove)
+    {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("  - " + Path.GetFileNameWithoutExtension(scene), EditorStyles.label);
+
+        if (GUILayout.Button("Open", EditorStyles.miniButton, GUILayout.Width(60)))
+        {
+            OpenScene(scene);
+        }
+
+        if (GUILayout.Button("Remove", EditorStyles.miniButton, GUILayout.Width(70)))
+        {
+            scenesToRemove.Add(scene); // Corrected here
+        }
+
+        if (GUILayout.Button("Move", EditorStyles.miniButton, GUILayout.Width(70)))
+        {
+            GenericMenu menu = new GenericMenu();
+            foreach (var targetGroup in sceneGroupData.sceneGroups)
+            {
+                if (targetGroup.groupName != group.groupName)
+                {
+                    string targetGroupName = targetGroup.groupName;
+                    menu.AddItem(new GUIContent(targetGroupName), false, () => MoveSceneToGroupInternal(scene, targetGroupName));
+                }
+            }
+            menu.ShowAsContext();
+        }
+
+        GUILayout.EndHorizontal();
+    }
+
     private void RenameScene(string oldScenePath, string newSceneName)
     {
         string newPath = Path.Combine(Path.GetDirectoryName(oldScenePath), newSceneName + ".unity");
@@ -473,7 +597,7 @@ public class SceneOrganizerWindow : EditorWindow
         LoadScenes();
     }
 
-    private void AddNewGroup()
+    private void AddNewGroupInternal(string newGroupName)
     {
         if (string.IsNullOrEmpty(newGroupName))
         {
@@ -487,16 +611,44 @@ public class SceneOrganizerWindow : EditorWindow
             return;
         }
 
+        if (sceneGroupData == null)
+        {
+            LoadGroups(); // Ensure that sceneGroupData is loaded
+        }
+
         if (!sceneGroupData.sceneGroups.Exists(group => group.groupName == newGroupName))
         {
             SceneGroupData.SceneGroup newGroup = new SceneGroupData.SceneGroup { groupName = newGroupName };
             sceneGroupData.sceneGroups.Add(newGroup);
-            newGroupName = "";
             EditorUtility.SetDirty(sceneGroupData);
         }
+        SaveGroups(); // Trigger save and backup immediately
     }
 
-    private void AddSceneToGroup(string scene, string groupName)
+    private void RenameGroupInternal(string oldGroupName, string newGroupName)
+    {
+        if (string.IsNullOrEmpty(newGroupName))
+        {
+            EditorUtility.DisplayDialog("Group Name Required", "Group must have a name.", "OK");
+            return;
+        }
+
+        if (newGroupName.Length > maxGroupNameLength)
+        {
+            EditorUtility.DisplayDialog("Group Name Too Long", "Group name cannot be longer than 50 characters.", "OK");
+            return;
+        }
+
+        var group = sceneGroupData.sceneGroups.Find(g => g.groupName == oldGroupName);
+        if (group != null)
+        {
+            group.groupName = newGroupName;
+            EditorUtility.SetDirty(sceneGroupData);
+        }
+        SaveGroups(); // Trigger save and backup immediately
+    }
+
+    private void AddSceneToGroupInternal(string scene, string groupName)
     {
         var group = sceneGroupData.sceneGroups.Find(g => g.groupName == groupName);
         if (group != null && !group.scenes.Contains(scene))
@@ -504,9 +656,10 @@ public class SceneOrganizerWindow : EditorWindow
             group.scenes.Add(scene);
             EditorUtility.SetDirty(sceneGroupData);
         }
+        SaveGroups(); // Trigger save and backup immediately
     }
 
-    private void MoveSceneToGroup(string scene, string targetGroupName)
+    private void MoveSceneToGroupInternal(string scene, string targetGroupName)
     {
         var targetGroup = sceneGroupData.sceneGroups.Find(g => g.groupName == targetGroupName);
         if (targetGroup != null)
@@ -525,6 +678,14 @@ public class SceneOrganizerWindow : EditorWindow
                 EditorUtility.SetDirty(sceneGroupData);
             }
         }
+        SaveGroups(); // Trigger save and backup immediately
+    }
+
+    private void RemoveGroupInternal(SceneGroupData.SceneGroup group)
+    {
+        sceneGroupData.sceneGroups.Remove(group);
+        EditorUtility.SetDirty(sceneGroupData);
+        SaveGroups();
     }
 
     private void OpenScene(string scenePath)
@@ -546,5 +707,11 @@ public class SceneOrganizerWindow : EditorWindow
 
         Rect watermarkRect = new Rect(position.width - 150, position.height - 20, 140, 20);
         GUI.Label(watermarkRect, "Made by Nativvstudios", watermarkStyle);
+    }
+
+    public void UpdateBackupSettings(bool enableBackup, string backupDirectory)
+    {
+        this.enableBackup = enableBackup;
+        this.backupDirectory = backupDirectory;
     }
 }
