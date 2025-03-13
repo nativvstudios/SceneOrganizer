@@ -1,130 +1,136 @@
-https://github.com/nativvstudios/SceneOrganizer/assets/26895364/35295e8e-cc9a-49d3-92f4-2101a9746dda
+# Scene Organizer
 
-# SceneOrganizer
+![Unity Version](https://img.shields.io/badge/Unity-2019.4%2B-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
-SceneOrganizer is a Unity Editor tool designed to simplify the management of scenes within your Unity project. This tool allows you to create, organize, and manage scenes and scene groups effortlessly. It provides a user-friendly interface for handling scene assets, making it easier to navigate and work with complex projects.
+A Unity Editor tool that helps you organize, manage, and quickly access scenes in your project. Group scenes together for better workflow management and faster development.
+
+![Scene Organizer Preview](https://via.placeholder.com/800x450.png?text=Scene+Organizer+Screenshot)
 
 ## Features
 
-### Scene Management
-- **Scene List:** Display all scenes within your project, sorted alphabetically.
-- **Search Bar:** Quickly find scenes by typing keywords in the search bar.
-- **Scene Operations:**
-  - **Open Scene:** Open a selected scene in the editor.
-  - **Rename Scene:** Rename any scene directly within the SceneOrganizer window.
-  - **Create New Scene:** Create new scenes using predefined templates.
-
-### Group Management
-- **Scene Groups:** Organize your scenes into groups for better project management.
-- **Add New Group:** Create new groups to categorize your scenes.
-- **Add Scene to Group:** Drag and drop scenes into groups or use the context menu to add selected scenes to a group.
-- **Move Scenes Between Groups:** Move scenes between different groups easily.
-- **Remove Scene from Group:** Remove scenes from groups without deleting the scene.
-- **Remove Group:** Delete a group and optionally remove all its scenes from the project.
-
-### Drag and Drop Functionality
-- **Drag Scenes:** Drag scenes from the scene list and drop them into groups.
-- **Visual Feedback:** Highlight groups when a scene is dragged over them.
-
-### Customization
-- **Resizable Panels:** Adjust the height of the scene list panel to suit your preferences.
-- **Group Collapsing:** Collapse and expand groups to focus on specific parts of your project.
-
-### Utility
-- **Watermark:** Displays a customizable watermark in the editor window.
+- **Scene Organization**: Manage scenes by creating custom groups
+- **Quick Scene Access**: Open scenes directly from the organizer window
+- **Drag-and-Drop Support**: Easily add scenes to groups with drag-and-drop
+- **Scene Group Management**: Create, rename, and delete scene groups
+- **Scene Search**: Quickly find scenes with the search bar
+- **Scene Renaming**: Rename scenes directly from the organizer window
+- **Scene Moving**: Move scenes between groups
+- **Backup System**: Automatic backup of your scene organization data
+- **Restore From Backup**: Recover your scene organization from previous backups
 
 ## Installation
 
-1. Clone or download the repository.
-2. Place the `SceneOrganizer` folder in your project's `Assets/Editor` directory.
+### Method 1: Unity Package
 
-## Usage
+1. Download the latest `.unitypackage` release from the [Releases](https://github.com/yourusername/scene-organizer/releases) page
+2. Open your Unity project
+3. Import the package via `Assets > Import Package > Custom Package...`
+4. Select the downloaded `.unitypackage` file
 
-1. Open the SceneOrganizer window from the Unity menu: `Window > Scene Organizer`.
-2. Use the interface to manage your scenes and scene groups.
+### Method 2: Manual Installation
 
-## Documentation
+1. Clone this repository or download the ZIP file
+2. Copy the `Assets/Scripts/Utilities/SceneOrganizer` folder into your project's Assets folder
 
-### SceneOrganizerWindow
+## Getting Started
 
-#### Properties
-- `List<string> scenes`: List of scenes in the project.
-- `SceneGroupData sceneGroupData`: Data structure for storing scene groups.
-- `string newGroupName`: Name for creating new groups.
-- `Vector2 mainScrollPosition`, `sceneScrollPosition`, `groupScrollPosition`, `initialSceneScrollPosition`: Scroll positions for various scrollable areas.
-- `float sceneAreaHeight`: Height of the scene list area.
-- `bool isResizing`: Indicates if the user is resizing the scene list area.
-- `string draggingScene`: Scene currently being dragged.
-- `string targetGroup`: Target group for the dragged scene.
-- `string searchQuery`: Search query for filtering scenes.
-- `string selectedScene`: Currently selected scene.
-- `string renameScene`: Scene currently being renamed.
-- `string newSceneName`: New name for the scene being renamed.
-- `float lastClickTime`: Timestamp of the last click event.
-- `bool isGroupScrollViewActive`: Indicates if the group scroll view is active.
-- `Dictionary<string, bool> groupCollapsedStates`: States for collapsing and expanding groups.
+1. Open the Scene Organizer window via `Window > Scene Organizer`
+2. Create a new group by entering a name and clicking "Add Group"
+3. Select a scene from the list and add it to your group
+4. Double-click on any scene to open it in the editor
 
-#### Methods
-- `ShowWindow()`: Opens the SceneOrganizer window.
-- `OnEnable()`: Loads scenes and groups when the window is enabled.
-- `OnDisable()`: Saves groups when the window is disabled.
-- `LoadScenes()`: Loads all scenes in the project.
-- `SaveGroups()`: Saves the current state of scene groups.
-- `LoadGroups()`: Loads scene groups from the asset.
-- `OnGUI()`: Renders the GUI for the SceneOrganizer window.
-- `DrawSearchBar()`: Draws the search bar for filtering scenes.
-- `DrawScenesList()`: Draws the list of scenes.
-- `DrawSceneItem(string scene)`: Draws an individual scene item.
-- `DrawRenameSceneField(string scene)`: Draws the rename field for a scene.
-- `DrawSceneLabel(string scene, GUIStyle sceneStyle)`: Draws the label for a scene.
-- `HandleSceneSelection(string scene, Rect labelRect)`: Handles the selection of scenes.
-- `StartRenamingScene(string scene)`: Initiates the renaming of a scene.
-- `HandleDragAndDrop()`: Manages drag and drop operations.
-- `DrawResizeHandle()`: Draws the handle for resizing the scene list area.
-- `DrawAddSceneToGroupButton()`: Draws the button for adding a scene to a group.
-- `DrawNewGroupSection()`: Draws the section for creating new groups.
-- `DrawGroupSection()`: Draws the section for managing groups.
-- `RenameScene(string oldScenePath, string newSceneName)`: Renames a scene.
-- `AddNewGroup()`: Adds a new group.
-- `AddSceneToGroup(string scene, string groupName)`: Adds a scene to a group.
-- `MoveSceneToGroup(string scene, string targetGroupName)`: Moves a scene to a different group.
-- `OpenScene(string scenePath)`: Opens a scene in the editor.
-- `DrawWatermark()`: Draws the watermark in the editor window.
+## Usage Guide
 
-### SceneGroupData
+### Creating Scene Groups
 
-#### Properties
-- `List<SceneGroup> sceneGroups`: List of scene groups.
+1. Enter a group name in the "New Group Name" field
+2. Click "Add Group" or press Enter
+3. Groups will be displayed in the lower section of the window
 
-#### Nested Classes
-- `SceneGroup`: Represents a group of scenes.
-  - `string groupName`: Name of the group.
-  - `List<string> scenes`: List of scenes in the group.
+### Adding Scenes to Groups
 
-### CreateNewSceneWindow
+**Method 1: Using the Button**
+1. Select a scene from the upper list
+2. Click "Add Selected Scene to Group"
+3. Choose the target group from the dropdown menu
 
-#### Properties
-- `string sceneName`: Name of the new scene.
-- `string[] sceneTemplates`: Array of scene templates.
-- `int selectedTemplateIndex`: Index of the selected scene template.
-- `string savePath`: Path where the new scene will be saved.
-- `SceneOrganizerWindow organizerWindow`: Reference to the SceneOrganizer window.
+**Method 2: Using Drag and Drop**
+1. Click and hold on a scene in the upper list
+2. Drag the scene onto the desired group
+3. Release to add the scene to that group
 
-#### Methods
-- `ShowWindow(SceneOrganizerWindow organizerWindow)`: Opens the CreateNewSceneWindow.
-- `OnGUI()`: Renders the GUI for the CreateNewSceneWindow.
-- `CreateScene()`: Creates a new scene based on the specified template.
+### Managing Scenes in Groups
+
+- **Open Scene**: Click the "Open" button next to a scene in a group
+- **Remove Scene**: Click the "Remove" button to remove a scene from a group (this doesn't delete the scene file)
+- **Move Scene**: Click the "Move" button to move a scene to a different group
+
+### Group Management
+
+- **Collapse/Expand Groups**: Click the ▼/► button next to each group name
+- **Rename Group**: Click the "Rename" button next to a group name
+- **Remove Group**: Click the "Remove Group" button at the bottom of each group section
+
+### Creating New Scenes
+
+1. Click the "Create New Scene" button
+2. Enter a name for your new scene
+3. Choose a template (Default or Empty)
+4. Select a save location
+5. Click "Create Scene"
+
+### Backup & Restore
+
+1. Click the settings (⚙️) icon in the search bar to access backup settings
+2. Enable backups and set a backup directory
+3. To restore from a backup, select a backup file from the dropdown and click "Restore from Selected Backup"
+
+## Configuration
+
+### Backup Settings
+
+- **Enable Backup**: Toggle automatic backups of your scene organization data
+- **Backup Directory**: Set the directory where backups will be stored
+- The system keeps the 3 most recent backups
+
+## File Structure
+
+```
+Assets/
+└── Scripts/
+    └── Utilities/
+        └── SceneOrganizer/
+            ├── SceneOrganizerWindow.cs      # Main organizer window
+            ├── CreateNewSceneWindow.cs      # Scene creation window
+            ├── SettingsWindow.cs            # Settings and backup window
+            └── SceneGroupData.cs            # Data structure for scene groups
+```
+
+## Data Storage
+
+Scene organization data is stored in a ScriptableObject located at `Assets/Editor/SceneGroupData.asset`. This file is created automatically the first time you use the tool.
+
+## Compatibility
+
+- Unity 2019.4 or higher
+- Works with both the Built-in Render Pipeline and URP/HDRP projects
 
 ## Contributing
 
-Feel free to submit issues or pull requests. Contributions are welcome!
+Contributions are welcome! Feel free to submit a pull request or create an issue if you have suggestions or encounter bugs.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Credits
+## Acknowledgements
 
-Made by [Nativvstudios](https://nativvstudios.com).
-
----
+- Made by [Nativvstudios](https://github.com/nativvstudios)
+- Thanks to all contributors who have helped improve this tool
