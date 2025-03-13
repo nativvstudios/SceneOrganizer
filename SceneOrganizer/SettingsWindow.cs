@@ -24,26 +24,42 @@ public class SettingsWindow : EditorWindow
         // Load saved settings
         enableBackup = EditorPrefs.GetBool("SceneOrganizer_EnableBackup", false);
         backupDirectory = EditorPrefs.GetString("SceneOrganizer_BackupDirectory", Application.dataPath);
+        
+        if (string.IsNullOrEmpty(backupDirectory))
+        {
+            backupDirectory = Application.dataPath;
+            EditorPrefs.SetString("SceneOrganizer_BackupDirectory", backupDirectory);
+        }
+        
         LoadBackupFiles();
         AdjustWindowSize();
     }
 
     private void LoadBackupFiles()
     {
-        if (Directory.Exists(backupDirectory))
+        try
         {
-            backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
-            Array.Sort(backupFiles);
-            for (int i = 0; i < backupFiles.Length; i++)
+            if (!string.IsNullOrEmpty(backupDirectory) && Directory.Exists(backupDirectory))
             {
-                backupFiles[i] = Path.GetFileName(backupFiles[i]);
+                backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
+                Array.Sort(backupFiles);
+                for (int i = 0; i < backupFiles.Length; i++)
+                {
+                    backupFiles[i] = Path.GetFileName(backupFiles[i]);
+                }
             }
+            else
+            {
+                backupFiles = new string[0];
+            }
+            selectedBackupIndex = backupFiles.Length > 0 ? backupFiles.Length - 1 : -1;
         }
-        else
+        catch (Exception ex)
         {
+            Debug.LogError($"Error loading backup files: {ex.Message}");
             backupFiles = new string[0];
+            selectedBackupIndex = -1;
         }
-        selectedBackupIndex = backupFiles.Length - 1;
     }
 
     private void OnGUI()
@@ -71,7 +87,7 @@ public class SettingsWindow : EditorWindow
         GUILayout.Space(10);
         GUILayout.Label("Restore from Backup", EditorStyles.boldLabel);
 
-        if (backupFiles.Length > 0)
+        if (backupFiles != null && backupFiles.Length > 0 && selectedBackupIndex >= 0 && selectedBackupIndex < backupFiles.Length)
         {
             selectedBackupIndex = EditorGUILayout.Popup("Select Backup", selectedBackupIndex, backupFiles);
 
@@ -98,31 +114,52 @@ public class SettingsWindow : EditorWindow
 
     private void SaveSettings()
     {
+        // Make sure backupDirectory is not null
+        if (string.IsNullOrEmpty(backupDirectory))
+        {
+            backupDirectory = Application.dataPath;
+        }
+
         // Save settings
         EditorPrefs.SetBool("SceneOrganizer_EnableBackup", enableBackup);
         EditorPrefs.SetString("SceneOrganizer_BackupDirectory", backupDirectory);
 
         // Notify the main window of the settings change
-        organizerWindow.UpdateBackupSettings(enableBackup, backupDirectory);
+        if (organizerWindow != null)
+        {
+            organizerWindow.UpdateBackupSettings(enableBackup, backupDirectory);
+        }
     }
 
     private void RestoreFromBackup(string backupFileName)
     {
-        string backupPath = Path.Combine(backupDirectory, backupFileName);
-        string assetPath = Application.dataPath + "/../" + SceneOrganizerWindow.assetPath;
-
         try
         {
-            File.Copy(backupPath, assetPath, true);
+            string backupPath = Path.Combine(backupDirectory, backupFileName);
+            string assetFullPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", SceneOrganizerWindow.assetPath));
+            
+            // Ensure the directory exists
+            string directory = Path.GetDirectoryName(assetFullPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            File.Copy(backupPath, assetFullPath, true);
             AssetDatabase.Refresh();
-            organizerWindow.LoadGroups();
+            
+            if (organizerWindow != null)
+            {
+                organizerWindow.LoadGroups();
+            }
+            
             Debug.Log("Restored SceneGroupData from selected backup.");
             EditorUtility.DisplayDialog("Restore from Backup", "SceneGroupData successfully restored from the selected backup.", "OK");
         }
         catch (Exception ex)
         {
             Debug.LogError($"Failed to restore SceneGroupData from backup: {ex.Message}");
-            EditorUtility.DisplayDialog("Restore from Backup", "Failed to restore SceneGroupData from backup.", "OK");
+            EditorUtility.DisplayDialog("Restore from Backup", "Failed to restore SceneGroupData from backup: " + ex.Message, "OK");
         }
     }
 

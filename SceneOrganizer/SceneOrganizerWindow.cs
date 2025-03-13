@@ -48,11 +48,12 @@ public class SceneOrganizerWindow : EditorWindow
     private void OnEnable()
     {
         LoadScenes();
-        LoadGroups();
-
+        
         // Load settings
         enableBackup = EditorPrefs.GetBool("SceneOrganizer_EnableBackup", false);
         backupDirectory = EditorPrefs.GetString("SceneOrganizer_BackupDirectory", Application.dataPath);
+        
+        LoadGroups();
     }
 
     private void OnDisable()
@@ -80,7 +81,7 @@ public class SceneOrganizerWindow : EditorWindow
         EditorUtility.SetDirty(sceneGroupData);
         AssetDatabase.SaveAssets();
 
-        if (enableBackup)
+        if (enableBackup && !string.IsNullOrEmpty(backupDirectory))
         {
             BackupGroups();
         }
@@ -90,6 +91,12 @@ public class SceneOrganizerWindow : EditorWindow
     {
         try
         {
+            if (string.IsNullOrEmpty(backupDirectory))
+            {
+                backupDirectory = Application.dataPath;
+                EditorPrefs.SetString("SceneOrganizer_BackupDirectory", backupDirectory);
+            }
+
             if (!Directory.Exists(backupDirectory))
             {
                 Directory.CreateDirectory(backupDirectory);
@@ -98,13 +105,16 @@ public class SceneOrganizerWindow : EditorWindow
             string timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
             string backupFileName = $"SceneGroupData_Backup_{timestamp}.asset";
             string backupPath = Path.Combine(backupDirectory, backupFileName);
-            string sourcePath = Application.dataPath + "/../" + assetPath;
+            string sourcePath = Path.Combine(Application.dataPath, "..", assetPath);
 
-            File.Copy(sourcePath, backupPath, true);
-            Debug.Log($"SceneGroupData backed up to {backupPath}");
+            if (File.Exists(sourcePath))
+            {
+                File.Copy(sourcePath, backupPath, true);
+                Debug.Log($"SceneGroupData backed up to {backupPath}");
 
-            // Manage backup copies
-            ManageBackupCopies();
+                // Manage backup copies
+                ManageBackupCopies();
+            }
         }
         catch (Exception ex)
         {
@@ -114,56 +124,106 @@ public class SceneOrganizerWindow : EditorWindow
 
     private void ManageBackupCopies()
     {
-        string[] backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
-
-        if (backupFiles.Length > 3)
+        try
         {
-            Array.Sort(backupFiles);
-            for (int i = 0; i < backupFiles.Length - 3; i++)
+            if (string.IsNullOrEmpty(backupDirectory) || !Directory.Exists(backupDirectory))
+                return;
+
+            string[] backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
+
+            if (backupFiles.Length > 3)
             {
-                File.Delete(backupFiles[i]);
+                Array.Sort(backupFiles);
+                for (int i = 0; i < backupFiles.Length - 3; i++)
+                {
+                    File.Delete(backupFiles[i]);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogWarning($"Error managing backup copies: {ex.Message}");
         }
     }
 
     public void LoadGroups()
     {
-        sceneGroupData = AssetDatabase.LoadAssetAtPath<SceneGroupData>(assetPath);
-
-        if (sceneGroupData == null || sceneGroupData.sceneGroups.Count == 0)
+        try
         {
-            // Try to restore from the latest backup
-            string[] backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
-            if (backupFiles.Length > 0)
+            // Ensure the directory for SceneGroupData exists
+            string fullAssetPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", assetPath));
+            string directoryPath = Path.GetDirectoryName(fullAssetPath);
+            
+            if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
             {
-                Array.Sort(backupFiles);
-                string latestBackup = backupFiles[backupFiles.Length - 1];
+                Directory.CreateDirectory(directoryPath);
+            }
 
-                try
+            sceneGroupData = AssetDatabase.LoadAssetAtPath<SceneGroupData>(assetPath);
+
+            if (sceneGroupData == null)
+            {
+                // Try to restore from the latest backup if backup is enabled
+                if (enableBackup && !string.IsNullOrEmpty(backupDirectory) && Directory.Exists(backupDirectory))
                 {
-                    File.Copy(latestBackup, Application.dataPath + "/../" + assetPath, true);
-                    AssetDatabase.Refresh();
-                    sceneGroupData = AssetDatabase.LoadAssetAtPath<SceneGroupData>(assetPath);
-                    Debug.Log("Restored SceneGroupData from latest backup.");
+                    string[] backupFiles = Directory.GetFiles(backupDirectory, "SceneGroupData_Backup_*.asset");
+                    if (backupFiles.Length > 0)
+                    {
+                        Array.Sort(backupFiles);
+                        string latestBackup = backupFiles[backupFiles.Length - 1];
+
+                        File.Copy(latestBackup, fullAssetPath, true);
+                        AssetDatabase.Refresh();
+                        sceneGroupData = AssetDatabase.LoadAssetAtPath<SceneGroupData>(assetPath);
+                        
+                        if (sceneGroupData != null)
+                        {
+                            Debug.Log("Restored SceneGroupData from latest backup.");
+                        }
+                        else
+                        {
+                            CreateNewSceneGroupData();
+                        }
+                    }
+                    else
+                    {
+                        CreateNewSceneGroupData();
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Debug.LogError($"Failed to restore SceneGroupData from backup: {ex.Message}");
                     CreateNewSceneGroupData();
                 }
             }
-            else
-            {
-                CreateNewSceneGroupData();
-            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to load groups: {ex.Message}");
+            CreateNewSceneGroupData();
         }
     }
 
     private void CreateNewSceneGroupData()
     {
-        sceneGroupData = CreateInstance<SceneGroupData>();
-        AssetDatabase.CreateAsset(sceneGroupData, assetPath);
-        AssetDatabase.SaveAssets();
+        try
+        {
+            string fullAssetPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", assetPath));
+            string directoryPath = Path.GetDirectoryName(fullAssetPath);
+            
+            if (!string.IsNullOrEmpty(directoryPath) && !Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+
+            sceneGroupData = CreateInstance<SceneGroupData>();
+            AssetDatabase.CreateAsset(sceneGroupData, assetPath);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"Created new SceneGroupData at {assetPath}");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"Failed to create SceneGroupData: {ex.Message}");
+        }
     }
 
     private void OnGUI()
@@ -366,7 +426,7 @@ public class SceneOrganizerWindow : EditorWindow
         if (currentEvent.type == EventType.DragPerform && draggingScene != null)
         {
             DragAndDrop.AcceptDrag();
-            if (sceneGroupData.sceneGroups.Count == 0)
+            if (sceneGroupData == null || sceneGroupData.sceneGroups.Count == 0)
             {
                 EditorUtility.DisplayDialog("No Groups", "You must have at least one group to add the scene to.", "OK");
                 draggingScene = null;
@@ -429,7 +489,7 @@ public class SceneOrganizerWindow : EditorWindow
         {
             if (GUILayout.Button("Add Selected Scene to Group", EditorStyles.miniButton))
             {
-                if (sceneGroupData.sceneGroups.Count == 0)
+                if (sceneGroupData == null || sceneGroupData.sceneGroups.Count == 0)
                 {
                     EditorUtility.DisplayDialog("No Groups", "You must have at least one group to add the scene to.", "OK");
                     return;
@@ -569,7 +629,7 @@ public class SceneOrganizerWindow : EditorWindow
 
         if (GUILayout.Button("Remove", EditorStyles.miniButton, GUILayout.Width(70)))
         {
-            scenesToRemove.Add(scene); // Corrected here
+            scenesToRemove.Add(scene);
         }
 
         if (GUILayout.Button("Move", EditorStyles.miniButton, GUILayout.Width(70)))
@@ -616,13 +676,13 @@ public class SceneOrganizerWindow : EditorWindow
             LoadGroups(); // Ensure that sceneGroupData is loaded
         }
 
-        if (!sceneGroupData.sceneGroups.Exists(group => group.groupName == newGroupName))
+        if (sceneGroupData != null && !sceneGroupData.sceneGroups.Exists(group => group.groupName == newGroupName))
         {
             SceneGroupData.SceneGroup newGroup = new SceneGroupData.SceneGroup { groupName = newGroupName };
             sceneGroupData.sceneGroups.Add(newGroup);
             EditorUtility.SetDirty(sceneGroupData);
+            SaveGroups(); // Trigger save and backup immediately
         }
-        SaveGroups(); // Trigger save and backup immediately
     }
 
     private void RenameGroupInternal(string oldGroupName, string newGroupName)
@@ -644,8 +704,8 @@ public class SceneOrganizerWindow : EditorWindow
         {
             group.groupName = newGroupName;
             EditorUtility.SetDirty(sceneGroupData);
+            SaveGroups(); // Trigger save and backup immediately
         }
-        SaveGroups(); // Trigger save and backup immediately
     }
 
     private void AddSceneToGroupInternal(string scene, string groupName)
@@ -655,8 +715,8 @@ public class SceneOrganizerWindow : EditorWindow
         {
             group.scenes.Add(scene);
             EditorUtility.SetDirty(sceneGroupData);
+            SaveGroups(); // Trigger save and backup immediately
         }
-        SaveGroups(); // Trigger save and backup immediately
     }
 
     private void MoveSceneToGroupInternal(string scene, string targetGroupName)
@@ -713,5 +773,9 @@ public class SceneOrganizerWindow : EditorWindow
     {
         this.enableBackup = enableBackup;
         this.backupDirectory = backupDirectory;
+        
+        // Save settings immediately
+        EditorPrefs.SetBool("SceneOrganizer_EnableBackup", enableBackup);
+        EditorPrefs.SetString("SceneOrganizer_BackupDirectory", backupDirectory);
     }
 }
