@@ -5,7 +5,7 @@
 
 A Unity Editor tool that helps you organize, manage, and quickly access scenes in your project. Group scenes together for better workflow management and faster development.
 
-![Scene Organizer Preview](https://via.placeholder.com/800x450.png?text=Scene+Organizer+Screenshot)
+![Scene Organizer Preview](screenshot.png)
 
 ## Features
 
